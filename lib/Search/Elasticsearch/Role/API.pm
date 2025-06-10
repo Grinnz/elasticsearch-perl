@@ -21,6 +21,7 @@ use Moo::Role;
 requires 'api_version';
 requires 'api';
 
+use JSON::MaybeXS qw(is_bool);
 use Scalar::Util qw(looks_like_number);
 use Search::Elasticsearch::Util qw(throw);
 use namespace::clean;
@@ -57,8 +58,8 @@ sub _detect_bool {
         return 'false' if $$val eq 0;
         return 'true'  if $$val eq 1;
     }
-    elsif ( UNIVERSAL::isa( $val, "JSON::PP::Boolean" ) ) {
-        return "$val" ? 'true' : 'false';
+    elsif ( is_bool $val ) {
+        return $val ? 'true' : 'false';
     }
     return "$val";
 }
@@ -94,11 +95,9 @@ sub _numOrString {
 #===================================
 sub _booleanOrLong {
 #===================================
-    if (looks_like_number($_[0])) {
-        return _num($_[0]);
-    }
-    my $val = _detect_bool(@_);
-    return ( $val && $val ne 'false' ) ? 'true' : 'false';
+    my $val = _detect_bool($_[0]);
+    return $val || 'false' if !length $val or $val eq 'true' or $val eq 'false';
+    return _num($_[0]);
 }
 
 #===================================
